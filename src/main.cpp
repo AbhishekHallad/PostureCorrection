@@ -15,7 +15,7 @@ const int LED_PIN    = 18;   // status LED
 const int BUZZER_CH  = 0;
 
 // FSR threshold for "sitting"
-const int FSR_SEATED_THRESH = 2000;  // adjust if needed
+const int FSR_SEATED_THRESH = 2000;
 
 // Posture threshold
 const float PITCH_THRESH = 5.0f;   // degrees
@@ -24,12 +24,11 @@ const float PITCH_THRESH = 5.0f;   // degrees
 const unsigned long BREAK_MS = 30000UL;
 
 // ---------- WiFi + Cloud ----------
-const char* WIFI_SSID = "Galaxy S222211";
-const char* WIFI_PASS = "jgzn7105";
+const char* WIFI_SSID = "XXXXXXXX";
+const char* WIFI_PASS = "XXXXXXXXXXX";
 
-// AWS EC2 public IP + port 5000
-// Example: "http://3.91.24.10:5000/api/data"
-const char* SERVER_URL = "http://54.219.27.54:5000/api/data";
+
+const char* SERVER_URL = "http://XX.XX.XXX.XXX:5000/api/data";
 
 unsigned long seatedStartMs = 0;   // when we first detected "sitting"
 
@@ -39,7 +38,7 @@ void buzzerOff() {
 }
 
 void buzzerTone(uint32_t freq) {
-  ledcWriteTone(BUZZER_CH, freq);  // play tone at 'freq' Hz
+  ledcWriteTone(BUZZER_CH, freq);
 }
 
 // --------- Cloud send helper ----------
@@ -68,9 +67,6 @@ void sendToServer(float pitch,
   json += "}";
 
   int code = http.POST(json);
-  // Optional debug:
-  // Serial.print("HTTP POST status: ");
-  // Serial.println(code);
 
   http.end();
 }
@@ -97,14 +93,13 @@ void setup() {
   Wire.write(0);      // wake up
   Wire.endTransmission();
 
-  analogReadResolution(12);     // 0–4095
+  analogReadResolution(12);
 
   // LED
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
-  // Buzzer: set up PWM channel
-  ledcSetup(BUZZER_CH, 2000, 8);        // base freq 2 kHz, 8-bit res
+  ledcSetup(BUZZER_CH, 2000, 8);
   ledcAttachPin(BUZZER_PIN, BUZZER_CH);
   buzzerOff();
 
@@ -116,9 +111,9 @@ void loop() {
 
   // ---------- IMU: read accel ----------
   Wire.beginTransmission(MPU_ADDR);
-  Wire.write(0x3B);              // ACCEL_XOUT_H
+  Wire.write(0x3B);              
   Wire.endTransmission(false);
-  Wire.requestFrom(MPU_ADDR, 6, true); // only accel (6 bytes)
+  Wire.requestFrom(MPU_ADDR, 6, true);
 
   int16_t ax = (Wire.read() << 8) | Wire.read();
   int16_t ay = (Wire.read() << 8) | Wire.read();
@@ -168,26 +163,21 @@ void loop() {
   } else {
     // Sitting
     if (badPosture) {
-      // ALERT 1: Sitting + bad posture (pitch > 5)
-      // Tone A (e.g., 3000 Hz), LED blinking
       buzzerTone(3000);
       bool led_on = ((now / 300) % 2 == 0);  // blink ~ every 300ms
       digitalWrite(LED_PIN, led_on ? HIGH : LOW);
 
     } else if (longSitting) {
-      // ALERT 2: Sitting longer than 30s, good posture
-      // Tone B (e.g., 2000 Hz), LED steady ON
       buzzerTone(2000);
       digitalWrite(LED_PIN, HIGH);
 
     } else {
-      // Sitting but <30s and posture OK: no alert
       buzzerOff();
       digitalWrite(LED_PIN, LOW);
     }
   }
 
-  // ---------- State string for cloud + human-readable ----------
+
   String stateStr;
   if (!isSeated) {
     stateStr = "NOT SEATED";
@@ -201,7 +191,7 @@ void loop() {
     }
   }
 
-  // ---------- Debug print ----------
+
   Serial.print("Pitch = ");
   Serial.print(pitch_acc, 1);
   Serial.print(" deg | FSR raw = ");
@@ -215,7 +205,7 @@ void loop() {
   Serial.print(" | state=");
   Serial.println(stateStr);
 
-  // ---------- Send to cloud every 1s ----------
+
   static unsigned long lastSend = 0;
   if (now - lastSend >= 1000) {   // every 1 second
     sendToServer(pitch_acc, fsr_raw, ldr_raw, isSeated, seatedSeconds, stateStr);
